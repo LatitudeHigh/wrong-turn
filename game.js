@@ -12,6 +12,8 @@ var downdown = false;
 var move_x = 0;
 var move_y = 0;
 
+var missionsComplete = 1;
+
 var movel = false;
 var mover = false;     
 var moveu = false;
@@ -28,18 +30,22 @@ var sandcolor, sandcolornight, roadcolor, roadcolornight, playcolor;
 
 // objects
 var playbutton, playtext;
-var gamenametext, gamenametext2, controlstext, versiontext;
+var gamenametext, gamenametext2, gamenametext3, controlstext, versiontext;
 var retrybutton, retrytext;
 var gaspos1x, gaspos2x, gaspos3x, gaspos4x, gaspos1y, gaspos2y, gaspos3y, gaspos4y;
 var milecounter, gasnum, gascounter;
 
 var desert1, desert2, desert3, desert4;
-var cactus, roadintersect, roadcolor, roadLeft, roadRight, roadBottom, roadTop;
+var cactus, roadintersect, roadcolor, roadLeft, roadRight, roadBottom, roadTop, house, cactusImage, gasImage;
 var miles; 
 var carbody;
 var music1, track0, track1;
 var tracknum;
 var mousex, mousey;
+
+var collected = 0;
+var numToCollect;
+var taskLabel;
 
 function tracknext(){
     music1.pause();
@@ -142,6 +148,7 @@ function addmenu() {
     add(playtext);
     add(gamenametext);
     add(gamenametext2);
+    add(gamenametext3);
     add(controlstext);
     add(versiontext);
 }
@@ -151,6 +158,7 @@ function removemenu() {
     remove(playtext);
     remove(gamenametext);
     remove(gamenametext2);
+    remove(gamenametext3);
     remove(controlstext);
     remove(versiontext);
 }
@@ -168,12 +176,17 @@ function addgame() {
     add(milecounter);
     add(gascounter);
     add(gas);
+    add(cactusImage);
+    add(gasImage);
+    add(house);
     add(carbody);
+    add(taskLabel);
     music1.play();
     music1.loop = true;
     settimers();
     add(cactus);
     add(musiccred);
+
 }
 
 function carretry() {
@@ -187,15 +200,16 @@ function carretry() {
     miles = 0;
     gasnum = 90;
     gas.setPosition(gaspos1x,gaspos1y);
-    carbody = new WebImage("https://codehs.com/uploads/e96bd0ddca4108aeb7815a3974109677");
+    carbody = new WebImage("car.png");
     carbody.setSize(40, 20);
     carbody.setRotation(rotation);
     carbody.setPosition(getWidth()/2,getHeight()/2);
     add(carbody);
     setTimer(depletetank,500);
-    milecounter.setText("Miles: " + miles);
+    milecounter.setText("Collected: " + collected);
     gascounter.setText("Gas: " + gasnum);
     retryactive = false;
+    collected = 0;
 }
 
 function settimers(){
@@ -302,7 +316,7 @@ function drift() {
     carbody.setRotation(rotation); 
 }
 
-var yeah = 0.1;
+var yeah = 0.2;
 
 function driftRight() {
     rotSpeed = (rotSpeed + yeah);
@@ -342,11 +356,19 @@ function keyUp(e) {
 }
 
 function accelerate(){
-    speed = speed + yeah;
+    if(speed < 0) {
+        speed += 2 * yeah
+    } else {
+        speed += yeah;
+    }
 }
 
 function decelerate(){
-    speed = speed - yeah;
+    if(speed > 0) {
+        speed -= 2 * yeah
+    } else {
+        speed -= yeah;
+    }
 }
 
 function neutralout(){
@@ -413,10 +435,30 @@ function checkOut() {
     
 }
 
+function depositCollection() {
+    if(numToCollect == collected) {
+        alert("Completed Mission " + missionsComplete);
+        missionsComplete++;
+        createTask();
+    }
+    collected = 0;
+    milecounter.setText("Collected: " + collected);
+
+}
+
 function checkOff() {
     var basepointx = carbody.getX();
     var basepointy = carbody.getY();
-    
+
+    if(house.containsPoint(basepointx, basepointy)) {
+        depositCollection();
+        return;
+    }
+    if(gasImage.containsPoint(basepointx, basepointy)) {
+        gasnum = 50;
+        return;
+    }
+  
     if ( basepointx < ( (getWidth()/2 )-70 ) && basepointy < ( ( getHeight()/2 ) -70 ) ) {
         died();
     }
@@ -444,12 +486,12 @@ function gassedup() {
         || ( hitLeft == carbody )
     	  || ( hitUp == carbody )
     	  || ( hitDown == carbody ) ){
-	    remove(gas);
+        collected ++;
+	      remove(gas);
         gas = new Circle(10);
         gas.setColor(Color.red);
-        gasnum = 50;
         miles++;
-        milecounter.setText("Miles: " + miles);
+        milecounter.setText("Collected: " + collected);
         gascounter.setText("Gas: " + gasnum);
         var pos = Randomizer.nextInt(1, 4);
         if(pos == 1){
@@ -477,6 +519,17 @@ function depletetank() {
     }
 }
 
+function createTask() {
+    numToCollect = Randomizer.nextInt(1 + missionsComplete, 3 + missionsComplete);
+
+    if(taskLabel) {
+        taskLabel.setText("Collect " + numToCollect + " and deliver to the hut!");
+    } else {
+        taskLabel = new Text("Collect " + numToCollect + " and deliver to the hut!", "16pt Arial")
+    }
+    taskLabel.setPosition(10, getHeight() / 6);
+}
+
 function setup() {
     sandcolor = new Color(239, 202, 52);
     sandcolornight = new Color(3, 23, 69);
@@ -500,9 +553,9 @@ function setup() {
     cactus.setSize(20,40);
     cactus.setColor(Color.green);
     cactus.setPosition(getWidth()-desert3.getWidth()+25,(getHeight()/2)+75);
-    
+
     roadintersect = new Rectangle(100,100);
-    roadcolor = new Color(40, 40, 40);
+    roadcolor = new Color(90, 90, 90);
     roadintersect.setColor(roadcolor);
     roadintersect.setPosition(getWidth()/2-(roadintersect.getWidth()/2),getHeight()/2-(roadintersect.getHeight()/2));
     
@@ -521,10 +574,23 @@ function setup() {
     roadTop = new Rectangle(100,(getHeight()/2)+50);
     roadTop.setColor(roadcolor);
     roadTop.setPosition(roadintersect.getX(),0);
+
+    house = new WebImage("house.png");
+    house.setSize(getWidth()/6, getHeight()/3);
+    house.setPosition(getWidth() - house.getWidth() - 50, roadRight.getY() - house.getHeight());
+
+    gasImage = new WebImage("gas.png");
+    gasImage.setSize(getWidth()/8, getHeight()/8);
+    gasImage.setPosition(getWidth()/4, roadLeft.getY() - gasImage.getHeight());
+
+    cactusImage = new WebImage("cactis.png");
+    cactusImage.setSize(getWidth()/3, getHeight()/3);
+    cactusImage.setPosition(50, getHeight() - cactusImage.getHeight() - 50);
+    
     
     miles = 0;
     pink = new Color(255,0,255);
-    milecounter = new Text("Miles: " + miles, "15pt Arial");
+    milecounter = new Text("Collected: " + collected, "15pt Arial");
     milecounter.setPosition((getWidth()/6)-(milecounter.getWidth()/2), 25);
     milecounter.setColor(pink);
     
@@ -534,7 +600,7 @@ function setup() {
     gascounter.setPosition(((getWidth()/6)*5)-(gascounter.getWidth()/2), 25);
     gascounter.setColor(pink);
     
-    carbody = new WebImage("https://codehs.com/uploads/e96bd0ddca4108aeb7815a3974109677");
+    carbody = new WebImage("car.png");
     carbody.setSize(40, 20);
     
     gaspos1x = (getWidth()/4);
@@ -551,6 +617,8 @@ function setup() {
     gas.setPosition(gaspos1x,gaspos1y);
 
     carbody.setPosition(getWidth()/2,getHeight()/2);
+
+    createTask();
 }
 
 function start() {
@@ -572,6 +640,9 @@ function start() {
     gamenametext2 = new Text("A game about driving in the desert." , "10pt Arial");
     gamenametext2.setPosition(getWidth()/2-gamenametext2.getWidth()/2,gamenametext.getHeight()+30);
     gamenametext2.setColor(pink);
+    gamenametext3 = new Text("Collect the red circles and deliver them to the hut. Stop for gas before you run out." , "10pt Arial");
+    gamenametext3.setPosition(getWidth()/2-gamenametext3.getWidth()/2,gamenametext.getHeight()+60);
+    gamenametext3.setColor(pink);
     controlstext = new Text("W - Accelerate, S - decelerate, A - Left, D - Right, O/P - Change Song" , "8pt Arial");
     controlstext.setPosition(getWidth()/2-controlstext.getWidth()/2,getHeight()/2);
     controlstext.setColor(pink);
